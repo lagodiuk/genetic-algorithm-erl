@@ -1,20 +1,32 @@
 -module(ga).
 -compile(export_all).
 
+-define(NO_CALLBACK, null).
+
 -record(chromosome_fit, {chromosome, fit}).
 
 chromosome_fit(Chromosome, FitnessFunc) ->
 	#chromosome_fit{chromosome=Chromosome, fit=FitnessFunc(Chromosome)}.
 
 launch(IterationsCount, InitialPopulation, Operator, FitnessFunc, ParentsSurviveCount) ->
-	InitialPopulationFit = [chromosome_fit(Chr, FitnessFunc) || Chr <- InitialPopulation],
-	iterate(IterationsCount, InitialPopulationFit, Operator, FitnessFunc, ParentsSurviveCount).
+	launch(IterationsCount, InitialPopulation, Operator, FitnessFunc, ParentsSurviveCount, ?NO_CALLBACK).
 
-iterate(0, PopulationFit, _Operator, _Fit, _ParentsSurviveCount) ->
+launch(IterationsCount, InitialPopulation, Operator, FitnessFunc, ParentsSurviveCount, CallbackFunc) ->
+	InitialPopulationFit = [chromosome_fit(Chr, FitnessFunc) || Chr <- InitialPopulation],
+	iterate(IterationsCount, InitialPopulationFit, Operator, FitnessFunc, ParentsSurviveCount, CallbackFunc).
+
+iterate(0, PopulationFit, _Operator, _Fit, _ParentsSurviveCount, _CallbackFunc) ->
 	PopulationFit;
-iterate(Iter, PopulationFit, Operator, Fit, ParentsSurviveCount) ->
-	NewPopulationFit = iteration(PopulationFit, Operator, Fit, ParentsSurviveCount),
-	iterate(Iter - 1, NewPopulationFit, Operator, Fit, ParentsSurviveCount).
+iterate(Iter, PopulationFit, Operator, Fit, ParentsSurviveCount, CallbackFunc) ->
+	NextPopulationFit = iteration(PopulationFit, Operator, Fit, ParentsSurviveCount),
+	{NewIterNum, NewPopulationFit, NewOperator, NewFit, NewParentsSurviveCount} =
+	case CallbackFunc /= ?NO_CALLBACK of
+		true ->
+			CallbackFunc(Iter - 1, NextPopulationFit, Operator, Fit, ParentsSurviveCount);
+		false ->
+			{Iter - 1, NextPopulationFit, Operator, Fit, ParentsSurviveCount}
+	end,
+	iterate(NewIterNum, NewPopulationFit, NewOperator, NewFit, NewParentsSurviveCount, CallbackFunc).
 
 iteration(ParentsFit, Operator, Fit, ParentsSurviveCount) ->
 	ParentChrs = [Chr || #chromosome_fit{chromosome=Chr, _=_} <- ParentsFit],
