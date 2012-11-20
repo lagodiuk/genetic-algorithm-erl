@@ -1,6 +1,10 @@
 -module(ga).
 -compile(export_all).
 
+launch(IterationsCount, InitialPopulation, Operator, FitnessFunc, ParentsSurviveCount) ->
+	InitialPopulationFit = [{Gene, FitnessFunc(Gene)} || Gene <- InitialPopulation],
+	iterate(IterationsCount, InitialPopulationFit, Operator, FitnessFunc, ParentsSurviveCount).
+
 iterate(0, PopulationFit, _Operator, _Fit, _ParentsSurviveCount) ->
 	PopulationFit;
 iterate(Iter, PopulationFit, Operator, Fit, ParentsSurviveCount) ->
@@ -24,15 +28,15 @@ iteration(ParentsFit, Operator, Fit, ParentsSurviveCount) ->
 
 new_population_fit(ParentChrs, Operator, Fit) ->
 	Pairs = pairs(utils:shuffle_list(ParentChrs)),
-	lists:append(rpc:pmap({?MODULE, genetic_operation}, [Operator, Fit], Pairs ++ ParentChrs)).
+	lists:append(rpc:pmap({?MODULE, genetic_operation}, [Operator, Fit], Pairs)).
 
 pairs(ParentChrs) ->
 	[FirstChr|_] = ParentChrs,
 	pairs(FirstChr, ParentChrs, []).
 pairs(FirstChr, [LastChr], Acc) ->
-	[{LastChr, FirstChr}|Acc];
+	[LastChr, {LastChr, FirstChr}|Acc];
 pairs(FirstChr, [Chr1, Chr2|T], Acc) ->
-	pairs(FirstChr, [Chr2|T], [{Chr1, Chr2}|Acc]).
+	pairs(FirstChr, [Chr2|T], [Chr1, {Chr1, Chr2}|Acc]).
 
 genetic_operation(X, Operator, Fit) ->
 	Chrs = Operator(X),

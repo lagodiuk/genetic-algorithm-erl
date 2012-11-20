@@ -3,8 +3,7 @@
 
 init_population(Cnt) ->
 	[FirstChr] = mut([1,1,1,1,1]),
-	Mutated = [begin [Chr]=mut(FirstChr), {Chr,fit(Chr)} end || _I <- lists:seq(1,Cnt)],
-	[{FirstChr,fit(FirstChr)}|Mutated].
+	[begin [R] = mut(FirstChr), R end || _I <- lists:seq(1,Cnt)].
 
 operator({X,Y}) ->
 	random:seed(now()),
