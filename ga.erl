@@ -1,8 +1,13 @@
 -module(ga).
 -compile(export_all).
 
+-record(chromosome_fit, {chromosome, fit}).
+
+chromosome_fit(Chromosome, FitnessFunc) ->
+	#chromosome_fit{chromosome=Chromosome, fit=FitnessFunc(Chromosome)}.
+
 launch(IterationsCount, InitialPopulation, Operator, FitnessFunc, ParentsSurviveCount) ->
-	InitialPopulationFit = [{Gene, FitnessFunc(Gene)} || Gene <- InitialPopulation],
+	InitialPopulationFit = [chromosome_fit(Chr, FitnessFunc) || Chr <- InitialPopulation],
 	iterate(IterationsCount, InitialPopulationFit, Operator, FitnessFunc, ParentsSurviveCount).
 
 iterate(0, PopulationFit, _Operator, _Fit, _ParentsSurviveCount) ->
@@ -12,13 +17,13 @@ iterate(Iter, PopulationFit, Operator, Fit, ParentsSurviveCount) ->
 	iterate(Iter - 1, NewPopulationFit, Operator, Fit, ParentsSurviveCount).
 
 iteration(ParentsFit, Operator, Fit, ParentsSurviveCount) ->
-	ParentChrs = [Chr || {Chr, _} <- ParentsFit],
+	ParentChrs = [Chr || #chromosome_fit{chromosome=Chr, _=_} <- ParentsFit],
 	ChildrenFit = new_population_fit(ParentChrs, Operator, Fit),
 	{SurvivedParentsFit, _} = lists:split(ParentsSurviveCount, ParentsFit),
 	AllSortedFit = lists:sort(
-		fun({_,Fit1}, {_,Fit2}) when Fit1 < Fit2 ->
+		fun(#chromosome_fit{fit=Fit1, _=_}, #chromosome_fit{fit=Fit2, _=_}) when Fit1 < Fit2 ->
 			true;
-		({_,_}, {_,_}) ->
+		(#chromosome_fit{_=_}, #chromosome_fit{_=_}) ->
 			false
 		end,
 		SurvivedParentsFit ++ ChildrenFit ),
@@ -40,4 +45,4 @@ pairs(FirstChr, [Chr1, Chr2|T], Acc) ->
 
 genetic_operation(X, Operator, Fit) ->
 	Chrs = Operator(X),
-	[{Chr, Fit(Chr)} || Chr <- Chrs].
+	[chromosome_fit(Chr, Fit) || Chr <- Chrs].
