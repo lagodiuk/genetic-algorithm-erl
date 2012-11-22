@@ -5,9 +5,9 @@
 -export([launch/5, launch/6]).
 -export([genetic_operation/3]).
 
--define(NO_CALLBACK, null).
+-include("ga.hrl").
 
--record(chromosome_fit, {chromosome, fit}).
+-define(NO_CALLBACK, null).
 
 
 launch(IterationsCount, InitialPopulation, Operator, FitnessFunc, ParentsSurviveCount) ->
