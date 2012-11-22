@@ -1,18 +1,20 @@
 -module(ga).
--compile(export_all).
+%%
+%% needed somehow to reduce number of input parameters...
+%%
+-export([launch/5, launch/6]).
+-export([genetic_operation/3]).
 
 -define(NO_CALLBACK, null).
 
 -record(chromosome_fit, {chromosome, fit}).
 
-chromosome_fit(Chromosome, FitnessFunc) ->
-	#chromosome_fit{chromosome=Chromosome, fit=FitnessFunc(Chromosome)}.
 
 launch(IterationsCount, InitialPopulation, Operator, FitnessFunc, ParentsSurviveCount) ->
 	launch(IterationsCount, InitialPopulation, Operator, FitnessFunc, ParentsSurviveCount, ?NO_CALLBACK).
 
 launch(IterationsCount, InitialPopulation, Operator, FitnessFunc, ParentsSurviveCount, CallbackFunc) ->
-	InitialPopulationFit = [chromosome_fit(Chr, FitnessFunc) || Chr <- InitialPopulation],
+	InitialPopulationFit = lists:append(rpc:pmap({?MODULE, genetic_operation}, [Operator, FitnessFunc], InitialPopulation)),
 	iterate(IterationsCount, InitialPopulationFit, Operator, FitnessFunc, ParentsSurviveCount, CallbackFunc).
 
 iterate(0, PopulationFit, _Operator, _Fit, _ParentsSurviveCount, _CallbackFunc) ->
@@ -47,6 +49,9 @@ new_population_fit(ParentChrs, Operator, Fit) ->
 	Pairs = pairs(utils:shuffle_list(ParentChrs)),
 	lists:append(rpc:pmap({?MODULE, genetic_operation}, [Operator, Fit], Pairs)).
 
+%%
+%% [A, B, C] -> [A, {A,B}, B, {B,C}, C, {C,A}]
+%%
 pairs(ParentChrs) ->
 	[FirstChr|_] = ParentChrs,
 	pairs(FirstChr, ParentChrs, []).
@@ -56,5 +61,9 @@ pairs(FirstChr, [Chr1, Chr2|T], Acc) ->
 	pairs(FirstChr, [Chr2|T], [Chr1, {Chr1, Chr2}|Acc]).
 
 genetic_operation(X, Operator, Fit) ->
+	random:seed(now()),
 	Chrs = Operator(X),
 	[chromosome_fit(Chr, Fit) || Chr <- Chrs].
+
+chromosome_fit(Chromosome, FitnessFunc) ->
+        #chromosome_fit{chromosome=Chromosome, fit=FitnessFunc(Chromosome)}.

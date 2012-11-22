@@ -6,10 +6,8 @@ init_population(Cnt) ->
 	[begin [R] = mut(FirstChr), R end || _I <- lists:seq(1,Cnt)].
 
 operator({X,Y}) ->
-	random:seed(now()),
 	cross(X,Y);
 operator(X) ->
-	random:seed(now()),
 	mut(X).
 
 fit([A,B,C,D,E]) ->
