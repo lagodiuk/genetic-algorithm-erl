@@ -15,15 +15,17 @@ ga_test() ->
 		(X) ->
 			[mutate(X)]
 	end,
-	Population1 = ga:launch(10, initial_population(), GeneticOperator, fun fit/1, 1),
-	[Best1 | _] = Population1,
+	FitPopulation1 = ga:launch(10, initial_population(), GeneticOperator, fun fit/1, 1),
+	[Best1 | _] = FitPopulation1,
 	#chromosome_fit{fit=FitBest1, _=_} = Best1,
 	
-	Population2 = ga:launch(30, initial_population(), GeneticOperator, fun fit/1, 1),
-        [Best2 | _] = Population2,
+	ChromosomesOfPopulation1 = [Chr || #chromosome_fit{chromosome=Chr, _=_} <- FitPopulation1],
+
+	FitPopulation2 = ga:launch(30, ChromosomesOfPopulation1, GeneticOperator, fun fit/1, 1),
+        [Best2 | _] = FitPopulation2,
         #chromosome_fit{fit=FitBest2, _=_} = Best2,
 
-	[Best1, Best2].
+	?assert(FitBest2 =< FitBest1).
 	
 initial_population() ->
         [[0, 0, 0, 0, 0],
@@ -32,6 +34,9 @@ initial_population() ->
          [1, 0, 1, 0, 1],
          [1, 1, 1, 1, 1]].
 
+%%
+%% Target is [1, 2, 3, 4, 5]
+%%
 fit([A, B, C, D, E]) ->
 	erlang:abs(A - 1) +
 	erlang:abs(B - 2) +
@@ -39,6 +44,12 @@ fit([A, B, C, D, E]) ->
 	erlang:abs(D - 4) +
 	erlang:abs(E - 5).
 
+%%
+%% Symmetric randomly uniformed crossover.
+%% For example:
+%% [1,1,1,1,1] and [2,2,2,2,2] after crossover might return:
+%% {[1,1,2,2,1], [2,2,1,1,2]}
+%%
 crossover(X, Y) ->
 	crossover(X, Y, [], []).
 crossover([], [], Acc1, Acc2) ->
