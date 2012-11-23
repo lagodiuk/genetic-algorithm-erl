@@ -6,31 +6,39 @@
 
 -define(CROSSOVER_PROBABILITY, 0.5).
 -define(MUTATION_PROBABILITY, 0.5).
+-define(PARENTS_SURVIVE_COUNT, 1).
 
+%%
+%% Kind of integration test
+%%
 ga_test() ->
-	GeneticOperator = fun
-		({X, Y}) ->
-			{X1, Y1} = crossover(X, Y),
-			[X1, Y1];
-		(X) ->
-			[mutate(X)]
-	end,
-	FitPopulation1 = ga:launch(10, initial_population(), GeneticOperator, fun fit/1, 1),
+	%% 1) Launch evolve for 10 iterations
+	%% FitPopulation1 is list of records #chromosome_fit{chromosome, fit}
+	%% contains population after 10 iterations
+	FitPopulation1 = ga:launch(10, initial_population(), fun genetic_operator/1, fun fit/1, ?PARENTS_SURVIVE_COUNT),
 	[Best1 | _] = FitPopulation1,
+	%% FitBest1 - fitness of best chromosome after 10 iterations
 	#chromosome_fit{fit=FitBest1, _=_} = Best1,
 	
+	%% extract chromosomes from FitPopulation1 (list of records #chromosome_fit{chromosome, fit}) 
 	ChromosomesOfPopulation1 = [Chr || #chromosome_fit{chromosome=Chr, _=_} <- FitPopulation1],
 
-	FitPopulation2 = ga:launch(30, ChromosomesOfPopulation1, GeneticOperator, fun fit/1, 1),
+	%% 2) Continue evolving - 30 iterations
+	FitPopulation2 = ga:launch(30, ChromosomesOfPopulation1, fun genetic_operator/1, fun fit/1, ?PARENTS_SURVIVE_COUNT),
         [Best2 | _] = FitPopulation2,
+	%% FitBest2 - fitness of best chromosome after next 30 iterations
         #chromosome_fit{fit=FitBest2, _=_} = Best2,
 
 	ChromosomesOfPopulation2 = [Chr || #chromosome_fit{chromosome=Chr, _=_} <- FitPopulation2],
 
-	FitPopulation3 = ga:launch(30, ChromosomesOfPopulation2, GeneticOperator, fun fit/1, 1),
+	%% 3) Continue evolving - 30 iterations
+	FitPopulation3 = ga:launch(30, ChromosomesOfPopulation2, fun genetic_operator/1, fun fit/1, ?PARENTS_SURVIVE_COUNT),
 	[Best3 | _] = FitPopulation3,
-        #chromosome_fit{fit=FitBest3, _=_} = Best3,
+        %% FitBest3 - fitness of best chromosome after next 30 iterations
+	#chromosome_fit{fit=FitBest3, _=_} = Best3,
 
+	%% Genetic algorithm works correctly, when fitness of each iterations best chromosome
+	%% is less or equals that on previous iterations best chromosome
 	?assert(FitBest2 =< FitBest1),
 	?assert(FitBest3 =< FitBest1),
 	?assert(FitBest3 =< FitBest2).
@@ -42,6 +50,16 @@ initial_population() ->
          [1, 0, 1, 0, 1],
          [1, 1, 1, 1, 1]].
 
+%%
+%% Unifying function, which depending on arguments
+%% delegates call to crossover or mutation functions
+%%
+genetic_operator({X, Y}) ->
+	{X1, Y1} = crossover(X, Y),
+	[X1, Y1];
+genetic_operator(X) ->
+	[mutate(X)].
+	
 %%
 %% Target is [1, 2, 3, 4, 5]
 %%
