@@ -25,7 +25,15 @@ ga_test() ->
         [Best2 | _] = FitPopulation2,
         #chromosome_fit{fit=FitBest2, _=_} = Best2,
 
-	?assert(FitBest2 =< FitBest1).
+	ChromosomesOfPopulation2 = [Chr || #chromosome_fit{chromosome=Chr, _=_} <- FitPopulation2],
+
+	FitPopulation3 = ga:launch(30, ChromosomesOfPopulation2, GeneticOperator, fun fit/1, 1),
+	[Best3 | _] = FitPopulation3,
+        #chromosome_fit{fit=FitBest3, _=_} = Best3,
+
+	?assert(FitBest2 =< FitBest1),
+	?assert(FitBest3 =< FitBest1),
+	?assert(FitBest3 =< FitBest2).
 	
 initial_population() ->
         [[0, 0, 0, 0, 0],
@@ -62,6 +70,11 @@ crossover([Hx | Tx], [Hy | Ty], Acc1, Acc2) ->
 			crossover(Tx, Ty, [Hy | Acc1], [Hx | Acc2])
 	end.
 
+%%
+%% Randomly change values of single input chromosome.
+%% For example:
+%% [1,1,1,1,1] might mutate into [1, 1.03, 1, 2.3, 1]
+%%
 mutate(X) ->
 	mutate(X, []).
 mutate([], Acc) ->
